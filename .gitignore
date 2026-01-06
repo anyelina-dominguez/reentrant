@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+build/
+dist/
+*.egg-info/
+.coverage
+data/*.json
+!data/example.json
+
+# local commit-pacing helpers
+.dates.txt
+.n
+.commit.sh
