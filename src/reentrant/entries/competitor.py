@@ -102,7 +102,10 @@ def require_card(value: object, field: str = "card") -> int:
 
 @dataclass
 class Entry:
-    """One person's entry to one event."""
+    """One person's entry to one event.
+
+    ``course`` may be blank, in which case the course comes from the class.
+    """
 
     reference: str
     competitor: Competitor
@@ -118,7 +121,10 @@ class Entry:
         self.reference = require_str(self.reference, "reference", max_len=16)
         if not isinstance(self.competitor, Competitor):
             raise ValidationError("an entry needs a competitor", field="competitor")
-        self.course = require_str(self.course, "course", max_len=40)
+        # An entry may name no course at all: a competitor enters a *class*,
+        # and which course that class runs is the organiser's to change on the
+        # morning. Event.entry_course resolves it.
+        self.course = require_str(self.course, "course", min_len=0, max_len=40)
         self.class_code = parse_class(self.class_code, "class_code").code
         self.card = optional(self.card, lambda v: require_card(v))
         self.hired = require_bool(self.hired, "hired")
