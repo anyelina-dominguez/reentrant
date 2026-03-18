@@ -55,7 +55,7 @@ class Download:
         """The row this download puts on the results list."""
         if self.entry is None:
             return None
-        return result_for(self.entry, self.check, self.seconds)
+        return result_for(self.entry, self.check, self.seconds, self.course or None)
 
     def slip(self) -> str:
         """The strip of paper the runner is handed."""
@@ -145,8 +145,13 @@ def results_from(event: Event, downloads: list[Download]) -> list[Result]:
             rows.append(row)
             seen.add(row.entry)
     for entry in event.entries.all():
-        if entry.reference not in seen:
-            rows.append(result_for(entry, None, None))
+        if entry.reference in seen:
+            continue
+        try:
+            course = event.entry_course(entry)
+        except NotFoundError:
+            course = entry.course
+        rows.append(result_for(entry, None, None, course))
     return rows
 
 

@@ -1,0 +1,253 @@
+"""One function per command.
+
+Every command takes ``(arguments, held, path)`` and returns
+``Outcome(status, lines, save)``. Nothing here prints: ``main`` does that, at
+the very bottom, which is what makes the commands testable by reading the lines
+they would have printed.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+from ..courses.planning import check_event, summary as planning_summary
+from ..entries.competitor import Competitor, Entry
+from ..errors import ValidationError
+from ..event.download import outstanding, process, results_from
+from ..event.event import Event, summary
+from ..reports.exports import entries_csv, results_csv, splits_csv
+from ..reports.sheets import (
+    course_results_sheet, download_log_sheet, results_sheet, splits_sheet, start_list_sheet,
+)
+from ..results.analysis import analyse_legs
+from ..results.classify import classify
+from ..starts.draw import apply_draw, draw_course, start_list
+from ..store.jsonstore import EventFile
+from ..timing.punch import CardRead
+from ..util.csv_io import map_columns, read_rows
+from ..util.text import heading, plural, table
+from ..util.times import format_time_of_day, parse_time_of_day
+
+
+@dataclass
+class Outcome:
+    """What a command did.
+
+    ``event`` is only set by ``new``, which is the one command that makes an
+    event rather than working on one.
+    """
+
+    status: int = 0
+    lines: list[str] = field(default_factory=list)
+    save: bool = False
+    event: Event | None = None
+
+
+def new_event(arguments, held: EventFile | None, path: Path) -> Outcome:
+    """``reentrant new "Club fixture" 2026-05-09``"""
+    if len(arguments.positional) < 2:
+        return Outcome(1, ["usage: reentrant new <name> <date>"])
+    if held is not None:
+        return Outcome(1, [f"there is already an event in {path}"])
+    name, date = arguments.positional[0], arguments.positional[1]
+    event = Event(name=name, date=date, venue=arguments.value("venue", "") or "")
+    return Outcome(0, [f"created {name} on {date} in {path}"], save=True, event=event)
+
+
+def show(arguments, held: EventFile, path: Path) -> Outcome:
+    """``reentrant show`` -- what is in the file."""
+    told = summary(held.event)
+    lines = [heading(f"{told['name']} -- {told['date']}", 66)]
+    if told["venue"]:
+        lines.append(str(told["venue"]))
+    lines.append(f"{told['controls']} controls, {told['courses']} courses, "
+                 f"{told['classes']} classes, {told['entries']} entries")
+    lines.append("")
+    lines.append(table([{"key": "course", "title": "course"},
+                        {"key": "entries", "title": "entries", "align": "right"}],
+                       list(told["by_course"])))  # type: ignore[arg-type]
+    return Outcome(0, lines)
+
+
+def check(arguments, held: EventFile, path: Path) -> Outcome:
+    """``reentrant check`` -- everything that would stop the event running."""
+    problems = held.event.check_ready()
+    notes = check_event(held.event.courses, held.event.controls)
+
+    lines = [heading("check", 66)]
+    if problems:
+        lines.append("problems:")
+        lines.extend(f"  {line}" for line in problems)
+    else:
+        lines.append("nothing wrong")
+    if notes:
+        lines.append("")
+        lines.append("notes for the controller:")
+        for note in notes:
+            lines.append(f"  [{note.kind}] {note.course}: {note.message}")
+        lines.append("")
+        lines.append(", ".join(f"{kind}: {count}"
+                               for kind, count in planning_summary(notes).items()))
+    return Outcome(1 if problems else 0, lines)
+
+
+def import_entries(arguments, held: EventFile, path: Path) -> Outcome:
+    """``reentrant import --file entries.csv``"""
+    source = Path(arguments.require("file"))
+    rows = read_rows(source.read_text(encoding="utf-8"))
+    if not rows:
+        return Outcome(1, [f"{source} has no rows"])
+
+    mapping = map_columns(rows[0].keys(), {
+        "surname": ["surname", "last name", "family name"],
+        "forename": ["forename", "first name", "given name"],
+        "club": ["club", "team"],
+        "class": ["class", "age class", "category"],
+        "course": ["course"],
+        "card": ["card", "si", "si card", "chip"],
+        "birth_year": ["birth year", "yob", "year of birth"],
+        "sex": ["sex", "gender"],
+    }, required=["surname", "forename", "class"])
+
+    added, rejected = [], []
+    for number, row in enumerate(rows, start=2):
+        try:
+            entry = Entry(
+                reference=held.event.entries.next_reference(),
+                competitor=Competitor(
+                    surname=row[mapping["surname"]],
+                    forename=row[mapping["forename"]],
+                    club=row.get(mapping.get("club", ""), ""),
+                    birth_year=int(row[mapping["birth_year"]]) if mapping.get("birth_year") and row.get(mapping["birth_year"]) else None,
+                    sex=row.get(mapping.get("sex", "")) or None,
+                ),
+                course=row.get(mapping.get("course", ""), ""),
+                class_code=row[mapping["class"]],
+                card=int(row[mapping["card"]]) if mapping.get("card") and row.get(mapping["card"]) else None,
+            )
+            held.event.entries.add(entry)
+            added.append(entry)
+        except Exception as error:  # noqa: BLE001 - one bad row must not lose the file
+            rejected.append((number, getattr(error, "message", str(error))))
+
+    lines = [f"read {plural(len(rows), 'row')} from {source}",
+             f"added {len(added)}, rejected {len(rejected)}"]
+    lines.extend(f"  line {number}: {reason}" for number, reason in rejected)
+    return Outcome(1 if rejected else 0, lines, save=bool(added))
+
+
+def draw(arguments, held: EventFile, path: Path) -> Outcome:
+    """``reentrant draw --first 10:00:00 --interval 60``"""
+    event = held.event
+    first = parse_time_of_day(arguments.value("first", "10:00:00") or "10:00:00", "first")
+    interval = arguments.number("interval", 60) or 60
+    seed = arguments.value("seed", event.name) or event.name
+
+    draws = []
+    for course in event.courses.all():
+        runners = [entry for entry in event.entries.all()
+                   if event.entry_course(entry) == course.name]
+        if not runners:
+            continue
+        drawn = draw_course(course.name, runners, first_seconds=first,
+                            interval_seconds=interval, seed=seed)
+        for entry in apply_draw(runners, drawn):
+            event.entries.update(entry)
+        draws.append(drawn)
+
+    if not draws:
+        return Outcome(1, ["there is nobody to draw"])
+
+    lines = [heading("start draw", 66)]
+    for drawn in draws:
+        note = "" if not drawn.unresolved else f"  ({plural(len(drawn.unresolved), 'clash')})"
+        lines.append(f"  {drawn.course}: {plural(len(drawn.slots), 'starter')}{note}")
+    lines.append("")
+    lines.append(start_list_sheet(event, start_list(draws)))
+    return Outcome(0, lines, save=True)
+
+
+def starts(arguments, held: EventFile, path: Path) -> Outcome:
+    """``reentrant starts`` -- the list as it stands."""
+    event = held.event
+    rows = []
+    for entry in event.entries.all():
+        if entry.start_seconds is None:
+            continue
+        rows.append({"time": format_time_of_day(entry.start_seconds),
+                     "seconds": entry.start_seconds,
+                     "course": event.entry_course(entry),
+                     "name": entry.competitor.listed_name,
+                     "club": entry.competitor.club})
+    rows.sort(key=lambda row: (row["seconds"], row["course"], row["name"]))
+    if not rows:
+        return Outcome(1, ["nobody has a start time yet"])
+    return Outcome(0, [start_list_sheet(event, rows)])
+
+
+def download(arguments, held: EventFile, path: Path) -> Outcome:
+    """``reentrant download --file cards.json`` -- put a log of cards through."""
+    source = Path(arguments.require("file"))
+    import json
+
+    raw = json.loads(source.read_text(encoding="utf-8"))
+    if not isinstance(raw, list):
+        raise ValidationError("a download log is a list of card reads")
+
+    processed = []
+    for row in raw:
+        read = CardRead.from_dict(row)
+        held.downloads.append(read)
+        processed.append(process(held.event, read))
+
+    held.results = results_from(held.event, processed)
+    lines = [download_log_sheet(processed)]
+    still_out = outstanding(held.event, processed)
+    if still_out:
+        lines.append("")
+        lines.append(f"still out: " + ", ".join(entry.competitor.listed_name for entry in still_out))
+    return Outcome(0, lines, save=True)
+
+
+def results(arguments, held: EventFile, path: Path) -> Outcome:
+    """``reentrant results [--by course] [--csv]``"""
+    rows = held.results
+    if not rows:
+        return Outcome(1, ["nothing has been downloaded yet"])
+    if arguments.flag("csv"):
+        return Outcome(0, results_csv(classify(rows)).rstrip("\n").split("\n"))
+    if arguments.value("by") == "course":
+        return Outcome(0, [course_results_sheet(held.event, rows)])
+    return Outcome(0, [results_sheet(held.event, rows)])
+
+
+def splits(arguments, held: EventFile, path: Path) -> Outcome:
+    """``reentrant splits --course Blue [--csv]``"""
+    course = arguments.require("course")
+    held.event.courses.require(course)
+
+    by_entry: dict[str, list[dict[str, Any]]] = {}
+    names: dict[str, str] = {}
+    for read in held.downloads:
+        result = process(held.event, read)
+        if result.entry is None or result.course != course or not result.ok:
+            continue
+        by_entry[result.entry.reference] = result.splits
+        names[result.entry.reference] = result.entry.competitor.listed_name
+
+    if not by_entry:
+        return Outcome(1, [f"nobody has completed {course} yet"])
+    if arguments.flag("csv"):
+        return Outcome(0, splits_csv(by_entry, names).rstrip("\n").split("\n"))
+    legs = analyse_legs(by_entry)
+    return Outcome(0, [splits_sheet(legs, names, title=f"splits -- {course}")])
+
+
+def export_entries(arguments, held: EventFile, path: Path) -> Outcome:
+    """``reentrant export-entries`` -- the entry list back out as CSV."""
+    rows = held.event.entries.all()
+    if not rows:
+        return Outcome(1, ["there are no entries"])
+    return Outcome(0, entries_csv(rows).rstrip("\n").split("\n"))

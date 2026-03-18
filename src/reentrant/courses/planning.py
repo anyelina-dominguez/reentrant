@@ -108,7 +108,14 @@ def unbalanced_legs(course: Course, controls: ControlSet) -> list[Note]:
 
 
 def check_course(course: Course, controls: ControlSet) -> list[Note]:
-    """Every note for one course, worst kind first."""
+    """Every note for one course, worst kind first.
+
+    A course using controls that are not out is not checked at all: there is no
+    geometry to check, and the readiness check reports that separately. This
+    used to raise, which meant one bad course took down the whole report.
+    """
+    if course.is_scored or course.missing_controls(controls):
+        return []
     notes = dog_legs(course, controls) + short_legs(course, controls) + unbalanced_legs(course, controls)
     order = {"dog-leg": 0, "short-leg": 1, "long-leg": 2}
     return sorted_by(notes, lambda note: (order.get(note.kind, 9), note.where))

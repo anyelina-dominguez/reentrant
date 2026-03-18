@@ -51,7 +51,7 @@ class Result:
         self.name = require_str(self.name, "name", max_len=120)
         self.club = require_str(self.club, "club", min_len=0, max_len=40)
         self.class_code = require_str(self.class_code, "class_code", max_len=4)
-        self.course = require_str(self.course, "course", max_len=40)
+        self.course = require_str(self.course, "course", min_len=0, max_len=40)
         self.seconds = optional(self.seconds, lambda v: require_int(v, "seconds", minimum=0))
         self.outcome = require_one_of(self.outcome, "outcome", ["ok"] + UNPLACED_ORDER)
 
@@ -82,8 +82,13 @@ class Result:
         }
 
 
-def result_for(entry: Entry, check: RunCheck | None, seconds: int | None) -> Result:
-    """One entry plus what happened to it."""
+def result_for(entry: Entry, check: RunCheck | None, seconds: int | None,
+               course: str | None = None) -> Result:
+    """One entry plus what happened to it.
+
+    ``course`` overrides the entry's own, which is how an entry that names only
+    a class gets the course its class runs onto the results sheet.
+    """
     if entry.state in ("dns", "dnf", "disqualified"):
         outcome = entry.state
     elif check is None:
@@ -95,7 +100,7 @@ def result_for(entry: Entry, check: RunCheck | None, seconds: int | None) -> Res
         name=entry.competitor.listed_name,
         club=entry.competitor.club,
         class_code=entry.class_code,
-        course=entry.course,
+        course=course if course is not None else entry.course,
         seconds=seconds if outcome == "ok" else None,
         outcome=outcome,
     )
