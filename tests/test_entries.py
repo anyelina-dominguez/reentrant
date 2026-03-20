@@ -60,8 +60,12 @@ class Entries(unittest.TestCase):
     def test_an_entry_may_have_no_card_yet(self):
         one = entry(card=None)
         self.assertIsNone(one.card)
-        # but a hired card still has a number on it
-        self.assertRaises(ValidationError, entry, card=None, hired=True)
+
+    def test_wanting_a_hire_card_before_one_is_allocated(self):
+        # The entry form says "I want to hire"; the number comes at the desk.
+        wanted = entry(card=None, hired=True)
+        self.assertTrue(wanted.hired)
+        self.assertIsNone(wanted.card)
 
     def test_eligibility_is_checked_against_the_class_entered(self):
         self.assertTrue(entry(class_code="W45").eligible(2026))

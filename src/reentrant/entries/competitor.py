@@ -132,8 +132,8 @@ class Entry:
                                       lambda v: require_int(v, "start_seconds", minimum=0, maximum=86_399))
         self.state = require_one_of(self.state, "state", ENTRY_STATES)
         self.note = (self.note or "").strip()
-        if self.hired and self.card is None:
-            raise ValidationError("a hired card still has a number", field="card")
+        # ``hired`` with no card is legal and normal: the entry form says "I
+        # want to hire one" weeks before the desk allocates a number.
 
     @property
     def age_class(self) -> AgeClass:
