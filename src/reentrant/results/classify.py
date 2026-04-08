@@ -101,7 +101,10 @@ def result_for(entry: Entry, check: RunCheck | None, seconds: int | None,
         club=entry.competitor.club,
         class_code=entry.class_code,
         course=course if course is not None else entry.course,
-        seconds=seconds if outcome == "ok" else None,
+        # The time is kept whatever the outcome. A mispunched run still took
+        # thirty-one minutes, and if the jury reinstates it that is the time it
+        # gets -- which cannot happen if the number was thrown away here.
+        seconds=seconds,
         outcome=outcome,
     )
 

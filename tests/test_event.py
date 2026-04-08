@@ -131,7 +131,10 @@ class Downloads(unittest.TestCase):
         download = process(self.event, read)
         self.assertFalse(download.ok)
         self.assertEqual(download.problem, "missing control 2 (102)")
-        self.assertIsNone(download.seconds)
+        # The time is still worked out -- the results list decides whether to
+        # show it, and a reinstatement needs it to exist.
+        self.assertEqual(download.seconds, 1272)
+        self.assertFalse(download.to_result().placed)
         self.assertEqual(download.to_result().outcome, "mispunch")
 
     def test_the_drawn_start_is_used_when_the_card_has_none(self):

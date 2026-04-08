@@ -110,15 +110,17 @@ class FromEntries(unittest.TestCase):
         self.assertEqual(row.seconds, 1872)
         self.assertEqual(row.name, "Okonkwo, Ada")
 
-    def test_a_mispunch_keeps_the_name_and_loses_the_time(self):
+    def test_a_mispunch_keeps_its_time_but_is_not_placed(self):
+        # The time is kept so that a reinstatement has something to reinstate.
         row = result_for(self.entry(), RunCheck("mispunch", missing=["102"]), 1872)
         self.assertEqual(row.outcome, "mispunch")
-        self.assertIsNone(row.seconds)
+        self.assertEqual(row.seconds, 1872)
+        self.assertFalse(row.placed)
 
     def test_the_entry_state_wins_over_the_card(self):
         row = result_for(self.entry("dnf"), RunCheck("ok"), 1872)
         self.assertEqual(row.outcome, "dnf")
-        self.assertIsNone(row.seconds)
+        self.assertFalse(row.placed)
 
     def test_a_card_never_read_is_a_non_starter(self):
         self.assertEqual(result_for(self.entry(), None, None).outcome, "dns")

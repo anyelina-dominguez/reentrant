@@ -106,7 +106,10 @@ def process(event: Event, read: CardRead) -> Download:
     finish_seconds = read.finish_seconds
 
     check = check_run(course, read, start_seconds=start_seconds, finish_seconds=finish_seconds)
-    seconds = read.elapsed(start_seconds, finish_seconds) if check.ok else None
+    # The elapsed time is worked out whatever the check said. A mispunched run
+    # still took a time, and the results list decides whether to show it; if it
+    # were thrown away here a reinstatement would have nothing to reinstate.
+    seconds = read.elapsed(start_seconds, finish_seconds)
 
     rows: list[dict[str, object]] = []
     if start_seconds is not None:

@@ -10,6 +10,7 @@ from typing import Any
 from .router import Router
 from .routes.entries import entry_routes
 from .routes.event import event_routes
+from .routes.desk import desk_routes
 from .routes.results import result_routes
 
 
@@ -19,6 +20,7 @@ def build_router() -> Router:
     router.mount("", event_routes())
     router.mount("", entry_routes())
     router.mount("", result_routes())
+    router.mount("", desk_routes())
     return router
 
 
