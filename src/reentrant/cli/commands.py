@@ -12,7 +12,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ..api.app import build_router, paths
+from ..api.context import Context
+from ..api.http import serve
 from ..courses.planning import check_event, summary as planning_summary
+from ..courses.sheets import all_sheets, collection_list, description_sheet
+from ..reports.board import board
 from ..entries.competitor import Competitor, Entry
 from ..errors import ValidationError
 from ..event.download import outstanding, process, results_from
@@ -251,3 +256,52 @@ def export_entries(arguments, held: EventFile, path: Path) -> Outcome:
     if not rows:
         return Outcome(1, ["there are no entries"])
     return Outcome(0, entries_csv(rows).rstrip("\n").split("\n"))
+
+
+def show_board(arguments, held: EventFile, path: Path) -> Outcome:
+    """``reentrant board [--at 13:30:00] [--shown 5]`` -- the sheet for the board."""
+    if not held.results:
+        return Outcome(1, ["nothing has been downloaded yet"])
+    at_seconds = parse_time_of_day(arguments.value("at", "12:00:00") or "12:00:00", "at")
+    shown = arguments.number("shown", 5) or 5
+    return Outcome(0, [board(held.event, held.results, at_seconds, shown=shown)])
+
+
+def describe(arguments, held: EventFile, path: Path) -> Outcome:
+    """``reentrant describe [--course Blue]`` -- the control description sheets."""
+    wanted = arguments.value("course")
+    if wanted:
+        course = held.event.courses.require(wanted)
+        return Outcome(0, description_sheet(course, held.event.controls).split("\n"))
+    if not len(held.event.courses):
+        return Outcome(1, ["there are no courses yet"])
+    return Outcome(0, all_sheets(held.event.courses, held.event.controls).split("\n"))
+
+
+def collect(arguments, held: EventFile, path: Path) -> Outcome:
+    """``reentrant collect`` -- the list for whoever picks the controls up."""
+    rows = collection_list(held.event.courses, held.event.controls)
+    if not rows:
+        return Outcome(1, ["there are no controls out"])
+    lines = [heading("controls to collect", 66)]
+    lines.append(table([
+        {"key": "code", "title": "code", "align": "right"},
+        {"key": "position", "title": "position"},
+        {"key": "used", "title": "used by"},
+    ], [{"code": row["code"], "position": row["position"],
+         "used": ", ".join(row["courses"]) or "no course"} for row in rows]))
+    lines.append("")
+    lines.append(plural(len(rows), "control") + " to collect")
+    return Outcome(0, lines)
+
+
+def serve_http(arguments, held: EventFile, path: Path) -> Outcome:
+    """``reentrant serve --port 8080`` -- answer http until stopped."""
+    port = arguments.number("port", 0) or 0
+    context = Context.from_file(held, path)
+    server = serve(build_router(), context, port=port)
+    host, bound = server.server_address[0], server.server_address[1]
+    outcome = Outcome(0, [f"listening on http://{host}:{bound}",
+                          f"{len(paths())} routes; stop with control-c"])
+    outcome.server = server  # type: ignore[attr-defined]
+    return outcome

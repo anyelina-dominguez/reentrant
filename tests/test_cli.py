@@ -195,3 +195,82 @@ class Usage(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class MoreCommands(unittest.TestCase):
+    """The commands added once the day had been run a few times."""
+
+    def setUp(self):
+        self.directory = Path(tempfile.mkdtemp())
+        self.path = self.directory / "event.json"
+        self.event = ["--event", str(self.path)]
+        run(["new", "Club fixture", "2026-05-09"] + self.event)
+        held = load(self.path)
+        for code, east in {"S1": 12000, "101": 12300, "102": 12800, "F1": 12100}.items():
+            held.event.controls.add(Control(code, grid(f"SK {east} 67000"), height=200.0))
+        held.event.courses.add(Course("Blue", ["S1", "101", "102", "F1"]))
+        held.event.class_courses["M21"] = "Blue"
+        save(self.path, held)
+
+    def test_the_description_sheets(self):
+        outcome = run(["describe"] + self.event)
+        self.assertEqual(outcome.status, 0)
+        text = "\n".join(outcome.lines)
+        self.assertIn("Blue", text)
+        self.assertIn("start", text)
+        self.assertIn("finish", text)
+
+    def test_one_course_at_a_time(self):
+        self.assertEqual(run(["describe", "--course", "Blue"] + self.event).status, 0)
+        self.assertEqual(run(["describe", "--course", "Red"] + self.event).status, 1)
+
+    def test_the_collectors_list(self):
+        outcome = run(["collect"] + self.event)
+        self.assertEqual(outcome.status, 0)
+        text = "\n".join(outcome.lines)
+        self.assertIn("101", text)
+        self.assertIn("2 controls to collect", text)
+        self.assertNotIn("S1", text, "the start is not collected like a control")
+
+    def test_the_board_needs_results(self):
+        outcome = run(["board"] + self.event)
+        self.assertEqual(outcome.status, 1)
+        self.assertIn("nothing has been downloaded", outcome.lines[0])
+
+    def test_the_board_once_somebody_has_run(self):
+        source = self.directory / "entries.csv"
+        source.write_text("surname,first name,class,si card\nOkonkwo,Ada,M21,205431\n",
+                          encoding="utf-8")
+        run(["import", "--file", str(source)] + self.event)
+        run(["draw", "--first", "10:00:00"] + self.event)
+        log = self.directory / "cards.json"
+        log.write_text(json.dumps([{
+            "card": 205431, "start": "10:00:00", "finish": "10:21:12",
+            "punches": [{"code": "101", "at": "10:04:11"}, {"code": "102", "at": "10:12:44"}],
+        }]), encoding="utf-8")
+        run(["download", "--file", str(log)] + self.event)
+
+        outcome = run(["board", "--at", "13:30:00"] + self.event)
+        self.assertEqual(outcome.status, 0)
+        text = "\n".join(outcome.lines)
+        self.assertIn("printed 13:30:00", text)
+        self.assertIn("Okonkwo, Ada", text)
+        self.assertIn("FINAL", text)
+
+    def test_serve_binds_a_port_and_answers(self):
+        outcome = run(["serve", "--port", "0"] + self.event)
+        self.assertEqual(outcome.status, 0)
+        self.assertIn("listening on http://", outcome.lines[0])
+        server = outcome.server
+        try:
+            import threading
+            import urllib.request
+
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            port = server.server_address[1]
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}/event") as response:
+                self.assertEqual(json.load(response)["name"], "Club fixture")
+        finally:
+            server.shutdown()
+            server.server_close()

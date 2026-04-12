@@ -32,6 +32,10 @@ COMMANDS: dict[str, Callable[..., commands.Outcome]] = {
     "results": commands.results,
     "splits": commands.splits,
     "export-entries": commands.export_entries,
+    "board": commands.show_board,
+    "describe": commands.describe,
+    "collect": commands.collect,
+    "serve": commands.serve_http,
 }
 
 #: Commands that work without an event file already existing.
@@ -50,6 +54,10 @@ USAGE = [
     "  results [--by course]  the results, --csv for the spreadsheet",
     "  splits --course Blue   the splits for one course",
     "  export-entries         the entry list back out as csv",
+    "  board [--at 13:30:00]  the provisional sheet for the board",
+    "  describe [--course c]  the control description sheets",
+    "  collect                the list for whoever picks the controls up",
+    "  serve [--port 8080]    answer http on a port",
     "",
     "common options:",
     "  --event <path>         the event file (default event.json)",
@@ -92,6 +100,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     outcome = run(sys.argv[1:] if argv is None else argv)
     for line in outcome.lines:
         print(line)
+    server = getattr(outcome, "server", None)
+    if server is not None:  # pragma: no cover - runs until interrupted
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            print("stopped")
+        finally:
+            server.server_close()
     return outcome.status
 
 
