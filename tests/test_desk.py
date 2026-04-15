@@ -171,3 +171,47 @@ class Board(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class Fixtures(unittest.TestCase):
+    def test_a_season_that_was_never_set_up_answers_an_empty_calendar(self):
+        status, body = app().get("/fixtures")
+        self.assertEqual(status, 200)
+        self.assertEqual(body["fixtures"], [])
+        self.assertIsNone(body["next"])
+
+    def test_a_fixture_is_added_and_read_back(self):
+        client = app()
+        status, body = client.post("/fixtures", {
+            "name": "Longshaw", "date": "2026-11-15", "venue": "Longshaw",
+            "opens": "2026-10-01", "closes": "2026-11-10", "capacity": 3})
+        self.assertEqual(status, 201)
+        self.assertEqual(body["room"], 3)
+        self.assertEqual(client.get("/fixtures/Longshaw")[1]["venue"], "Longshaw")
+        self.assertEqual(client.get("/fixtures/Padley")[0], 404)
+
+    def test_the_calendar_says_what_each_fixture_is_doing(self):
+        client = app()
+        client.post("/fixtures", {"name": "Longshaw", "date": "2026-11-15",
+                                  "opens": "2026-10-01", "closes": "2026-11-10"})
+        body = client.get("/fixtures?on=2026-10-15")[1]
+        self.assertEqual(body["fixtures"][0]["state"], "open")
+        self.assertEqual(body["next"], "Longshaw")
+
+    def test_entries_are_taken_and_refused(self):
+        client = app()
+        client.post("/fixtures", {"name": "Longshaw", "date": "2026-11-15",
+                                  "opens": "2026-10-01", "closes": "2026-11-10", "capacity": 2})
+        self.assertEqual(client.post("/fixtures/Longshaw/entries",
+                                     {"on": "2026-10-15", "count": 2})[1]["entered"], 2)
+        self.assertEqual(client.post("/fixtures/Longshaw/entries", {"on": "2026-10-15"})[0], 409)
+        self.assertEqual(client.post("/fixtures/Longshaw/entries", {"on": "2026-09-01"})[0], 409)
+
+    def test_cancelling_a_fixture(self):
+        client = app()
+        client.post("/fixtures", {"name": "Longshaw", "date": "2026-11-15",
+                                  "opens": "2026-10-01", "closes": "2026-11-10"})
+        body = client.delete("/fixtures/Longshaw", {"reason": "snow"})[1]
+        self.assertTrue(body["cancelled"])
+        self.assertEqual(body["note"], "snow")
+        self.assertIsNone(client.get("/fixtures?on=2026-10-15")[1]["next"])
