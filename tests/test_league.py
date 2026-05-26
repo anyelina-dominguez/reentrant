@@ -147,3 +147,34 @@ class League(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class Handicapped(unittest.TestCase):
+    """The other way a club league runs: one list, times divided by age."""
+
+    def event(self):
+        return LeagueEvent("Fixture 1", "2026-01-10", [
+            result("E1", "Young, Ada", "DPO", 1500, class_code="M21"),
+            result("E2", "Older, Nils", "SYO", 1800, class_code="M60"),
+            result("E3", "Lost, Jo", "HALO", None, "mispunch", class_code="M21"),
+        ])
+
+    def test_the_veteran_can_beat_the_open_runner(self):
+        from reentrant.event.league import score_handicapped
+
+        rows = score_handicapped(self.event(), {"E1": (21, "M"), "E2": (60, "M")})
+        self.assertEqual([row["name"] for row in rows], ["Older, Nils", "Young, Ada"])
+        self.assertEqual(rows[0]["points"], 100)
+        self.assertEqual(rows[1]["points"], 98)
+
+    def test_a_runner_whose_age_is_not_known_is_left_out(self):
+        from reentrant.event.league import score_handicapped
+
+        rows = score_handicapped(self.event(), {"E1": (21, "M")})
+        self.assertEqual([row["name"] for row in rows], ["Young, Ada"])
+
+    def test_a_mispunch_scores_nothing_here_either(self):
+        from reentrant.event.league import score_handicapped
+
+        rows = score_handicapped(self.event(), {"E1": (21, "M"), "E2": (60, "M"), "E3": (21, "M")})
+        self.assertNotIn("Lost, Jo", [row["name"] for row in rows])

@@ -21,8 +21,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from ..results.classify import Result, by_class
-from ..results.handicap import points_for
+from ..results.classify import Result, by_class, classify
+from ..results.handicap import handicapped_seconds, points_for
 from ..util.order import group_by, sorted_by
 from ..util.validate import require_int, require_str
 
@@ -74,6 +74,44 @@ class LeagueScore:
             "events": self.events,
             "counted": [row["event"] for row in self.counted],
         }
+
+
+def score_handicapped(event: LeagueEvent, ages: dict[str, tuple[int, str]], *,
+                      top: int = 100, step: int = 2) -> list[dict[str, object]]:
+    """Points from one handicapped ranking across the whole field.
+
+    The other way a club league runs: everybody on one list, times divided by
+    an age factor, points by place on that. It rewards turning up rather than
+    being in a small class, which is the argument for it; the argument against
+    is that it depends on a table of factors somebody made up.
+
+    ``ages`` maps entry reference to ``(age, sex)``. A runner whose age is not
+    known is left out -- there is no honest factor to apply.
+    """
+    scored = []
+    for row in classify(event.results):
+        if not row.placed or row.entry not in ages:
+            continue
+        age, sex = ages[row.entry]
+        scored.append({
+            "event": event.name,
+            "date": event.date,
+            "name": row.name,
+            "club": row.club,
+            "class": row.class_code,
+            "seconds": handicapped_seconds(int(row.seconds), age, sex),
+        })
+
+    scored = sorted_by(scored, "seconds", "name")
+    rows = []
+    place = 0
+    previous = None
+    for index, row in enumerate(scored, start=1):
+        if row["seconds"] != previous:
+            place = index
+            previous = row["seconds"]
+        rows.append({**row, "place": place, "points": points_for(place, top=top, step=step)})
+    return rows
 
 
 def score_event(event: LeagueEvent, *, top: int = 100, step: int = 2) -> list[dict[str, object]]:
