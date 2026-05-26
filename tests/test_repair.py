@@ -117,3 +117,27 @@ class Voiding(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class AutoReinstate(unittest.TestCase):
+    def test_a_voided_control_reinstates_everybody_who_only_missed_it(self):
+        from reentrant.timing.repair import auto_reinstate
+
+        log = CorrectionLog()
+        log.add(Correction("E1", "void-control", "knocked over", code="102"))
+        fixed = auto_reinstate(rows(), log, {"E1": ["102"]})
+        self.assertEqual(fixed[0].outcome, "ok")
+
+    def test_somebody_who_missed_something_else_as_well_is_not_reinstated(self):
+        from reentrant.timing.repair import auto_reinstate
+
+        log = CorrectionLog()
+        log.add(Correction("E1", "void-control", "knocked over", code="102"))
+        fixed = auto_reinstate(rows(), log, {"E1": ["102", "103"]})
+        self.assertEqual(fixed[0].outcome, "mispunch")
+
+    def test_nothing_voided_changes_nothing(self):
+        from reentrant.timing.repair import auto_reinstate
+
+        self.assertEqual([row.outcome for row in auto_reinstate(rows(), CorrectionLog(), {})],
+                         ["mispunch", "ok", "no-finish"])
