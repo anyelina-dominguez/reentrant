@@ -108,27 +108,6 @@ class CorrectionLog:
         return cls([Correction.from_dict(row) for row in rows])
 
 
-def auto_reinstate(results: list[Result], log: CorrectionLog,
-                   missed: dict[str, list[str]]) -> list[Result]:
-    """Reinstate anybody whose only missing control has been voided.
-
-    Saves the desk typing a reinstatement for each of forty people when a
-    control is found knocked over. ``missed`` maps entry to the controls that
-    run was missing.
-    """
-    voided = set(log.voided())
-    if not voided:
-        return results
-    out = []
-    for row in results:
-        gone = missed.get(row.entry, [])
-        if row.outcome == "mispunch" and gone and set(gone) <= voided:
-            out.append(_with(row, outcome="ok", seconds=row.seconds))
-        else:
-            out.append(row)
-    return out
-
-
 def apply_corrections(results: list[Result], log: CorrectionLog) -> list[Result]:
     """Rewrite a results list according to the decisions taken.
 
