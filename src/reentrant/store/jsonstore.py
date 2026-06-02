@@ -23,6 +23,7 @@ from ..errors import SchemaError
 from ..event.event import Event
 from ..results.classify import Result
 from ..timing.punch import CardRead
+from ..timing.repair import CorrectionLog
 from ..util.validate import require_str
 from .migrations import CURRENT_VERSION, migrate
 
@@ -34,6 +35,8 @@ class EventFile:
     event: Event
     downloads: list[CardRead] = field(default_factory=list)
     results: list[Result] = field(default_factory=list)
+    corrections: CorrectionLog = field(default_factory=CorrectionLog)
+    complaints: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -41,6 +44,8 @@ class EventFile:
             "event": self.event.to_dict(),
             "downloads": [read.to_dict() for read in self.downloads],
             "results": [row.to_dict() for row in self.results],
+            "corrections": self.corrections.to_list(),
+            "complaints": list(self.complaints),
             "draws": [],
         }
 
@@ -51,6 +56,8 @@ class EventFile:
             event=Event.from_dict(data.get("event") or {}),
             downloads=[CardRead.from_dict(row) for row in data.get("downloads") or []],
             results=[_result_from(row) for row in data.get("results") or []],
+            corrections=CorrectionLog.from_list(list(data.get("corrections") or [])),
+            complaints=list(data.get("complaints") or []),
         )
 
 

@@ -112,3 +112,37 @@ class Migrations(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class Paperwork(unittest.TestCase):
+    """Version 3: the decisions live in the file, not only in the server."""
+
+    def setUp(self):
+        self.path = Path(tempfile.mkdtemp()) / "event.json"
+
+    def test_corrections_survive_the_file(self):
+        from reentrant.timing.repair import Correction, CorrectionLog
+
+        file = held()
+        file.corrections = CorrectionLog()
+        file.corrections.add(Correction("ENT-0001", "reinstate", "control was down", "organiser"))
+        save(self.path, file)
+        back = load(self.path)
+        self.assertEqual(len(back.corrections), 1)
+        self.assertEqual(back.corrections.corrections[0].by, "organiser")
+
+    def test_complaints_survive_the_file(self):
+        file = held()
+        file.complaints = [{"reference": "CMP-0001", "entry": "ENT-0001", "about": "control 102"}]
+        save(self.path, file)
+        self.assertEqual(load(self.path).complaints[0]["reference"], "CMP-0001")
+
+    def test_a_version_two_file_gains_them_empty(self):
+        upgraded = migrate({"version": 2, "event": {"name": "x"}, "downloads": [], "results": []})
+        self.assertEqual(upgraded["version"], CURRENT_VERSION)
+        self.assertEqual(upgraded["corrections"], [])
+        self.assertEqual(upgraded["complaints"], [])
+
+    def test_the_older_files_still_open(self):
+        self.assertEqual(migrate({"name": "very old"})["version"], CURRENT_VERSION)
+        self.assertEqual(migrate({"version": 1, "event": {}})["complaints"], [])

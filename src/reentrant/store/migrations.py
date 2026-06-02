@@ -15,7 +15,7 @@ from typing import Any, Callable
 
 from ..errors import SchemaError
 
-CURRENT_VERSION = 2
+CURRENT_VERSION = 3
 
 _STEPS: dict[int, Callable[[dict[str, Any]], dict[str, Any]]] = {}
 
@@ -58,6 +58,19 @@ def _from_nothing(raw: dict[str, Any]) -> dict[str, Any]:
         "event": raw.get("event", raw),
         "downloads": raw.get("downloads", []),
     }
+
+
+@step(2)
+def _add_paperwork(raw: dict[str, Any]) -> dict[str, Any]:
+    """Version 3 keeps the day's paperwork with the event.
+
+    Corrections and complaints were held only in the running server, which was
+    fine until the laptop was restarted at lunchtime and four reinstatements
+    went with it. They belong in the file, because they are decisions and the
+    results cannot be rebuilt without them.
+    """
+    return {**raw, "corrections": raw.get("corrections", []),
+            "complaints": raw.get("complaints", [])}
 
 
 @step(1)
