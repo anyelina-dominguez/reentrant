@@ -20,6 +20,7 @@ from ..event.event import Event
 from ..results.classify import Result
 from ..store.jsonstore import EventFile, save
 from ..timing.punch import CardRead
+from ..timing.repair import CorrectionLog
 
 
 class Clock:
@@ -47,11 +48,13 @@ class Context:
     downloads: list[CardRead] = field(default_factory=list)
     processed: list[Download] = field(default_factory=list)
     results: list[Result] = field(default_factory=list)
+    corrections: CorrectionLog = field(default_factory=CorrectionLog)
     path: Path | None = None
     clock: Clock = field(default_factory=Clock)
 
     def as_file(self) -> EventFile:
-        return EventFile(event=self.event, downloads=self.downloads, results=self.results)
+        return EventFile(event=self.event, downloads=self.downloads, results=self.results,
+                         corrections=self.corrections)
 
     def persist(self) -> bool:
         """Write the file, if the server was started against one."""
@@ -63,4 +66,4 @@ class Context:
     @classmethod
     def from_file(cls, held: EventFile, path: Path | None = None) -> "Context":
         return cls(event=held.event, downloads=list(held.downloads),
-                   results=list(held.results), path=path)
+                   results=list(held.results), corrections=held.corrections, path=path)

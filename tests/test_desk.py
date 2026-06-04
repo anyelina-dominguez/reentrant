@@ -215,3 +215,22 @@ class Fixtures(unittest.TestCase):
         self.assertTrue(body["cancelled"])
         self.assertEqual(body["note"], "snow")
         self.assertIsNone(client.get("/fixtures?on=2026-10-15")[1]["next"])
+
+
+class Persistence(unittest.TestCase):
+    def test_a_correction_reaches_the_file(self):
+        import tempfile
+        from pathlib import Path
+
+        from reentrant.store.jsonstore import EventFile, load, save
+
+        path = Path(tempfile.mkdtemp()) / "event.json"
+        save(path, EventFile(event=build()))
+        context = Context.from_file(load(path), path)
+        client = test_app(context)
+
+        client.post("/corrections", {"entry": "ENT-0001", "decision": "reinstate",
+                                     "reason": "control was down", "by": "organiser"})
+        reopened = load(path)
+        self.assertEqual(len(reopened.corrections), 1)
+        self.assertEqual(reopened.corrections.corrections[0].entry, "ENT-0001")

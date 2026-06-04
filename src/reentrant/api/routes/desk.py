@@ -88,6 +88,7 @@ def desk_routes() -> Router:
         raw = require_mapping(body, "body")
         context.event.entries.require(require_str(raw.get("entry"), "entry"))
         correction = _corrections(context).add(Correction.from_dict(raw))
+        context.persist()
         return 201, correction.to_dict()
 
     # -- complaints ----------------------------------------------------------
