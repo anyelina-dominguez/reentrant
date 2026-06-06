@@ -22,6 +22,7 @@ from ..entries.competitor import Competitor, Entry
 from ..errors import ValidationError
 from ..event.download import outstanding, process, results_from
 from ..event.event import Event, summary
+from ..event.report import build_report, render_report
 from ..reports.exports import entries_csv, results_csv, splits_csv
 from ..reports.sheets import (
     course_results_sheet, download_log_sheet, results_sheet, splits_sheet, start_list_sheet,
@@ -305,3 +306,12 @@ def serve_http(arguments, held: EventFile, path: Path) -> Outcome:
                           f"{len(paths())} routes; stop with control-c"])
     outcome.server = server  # type: ignore[attr-defined]
     return outcome
+
+
+def write_up(arguments, held: EventFile, path: Path) -> Outcome:
+    """``reentrant report [--note "..."]`` -- the organiser's write-up."""
+    if not held.results:
+        return Outcome(1, ["nothing has been downloaded yet"])
+    notes = [value for value in [arguments.value("note")] if value]
+    report = build_report(held.event, held.results, notes=notes)
+    return Outcome(0, render_report(report).split("\n"))

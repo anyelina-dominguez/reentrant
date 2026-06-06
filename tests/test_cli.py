@@ -274,3 +274,45 @@ class MoreCommands(unittest.TestCase):
         finally:
             server.shutdown()
             server.server_close()
+
+
+class WriteUp(unittest.TestCase):
+    def setUp(self):
+        self.directory = Path(tempfile.mkdtemp())
+        self.path = self.directory / "event.json"
+        self.event = ["--event", str(self.path)]
+        run(["new", "Club fixture", "2026-05-09"] + self.event)
+        held = load(self.path)
+        for code, east in {"S1": 12000, "101": 12300, "102": 12800, "F1": 12100}.items():
+            held.event.controls.add(Control(code, grid(f"SK {east} 67000"), height=200.0))
+        held.event.courses.add(Course("Blue", ["S1", "101", "102", "F1"]))
+        held.event.class_courses["M21"] = "Blue"
+        save(self.path, held)
+        source = self.directory / "entries.csv"
+        source.write_text("surname,first name,class,si card\nOkonkwo,Ada,M21,205431\n",
+                          encoding="utf-8")
+        run(["import", "--file", str(source)] + self.event)
+        run(["draw", "--first", "10:00:00"] + self.event)
+        log = self.directory / "cards.json"
+        log.write_text(json.dumps([{
+            "card": 205431, "start": "10:00:00", "finish": "10:35:00",
+            "punches": [{"code": "101", "at": "10:04:11"}, {"code": "102", "at": "10:12:44"}],
+        }]), encoding="utf-8")
+        run(["download", "--file", str(log)] + self.event)
+
+    def test_the_write_up(self):
+        outcome = run(["report"] + self.event)
+        self.assertEqual(outcome.status, 0)
+        text = "\n".join(outcome.lines)
+        self.assertIn("Club fixture -- 2026-05-09", text)
+        self.assertIn("1 started, 1 finished", text)
+        self.assertIn("about right", text)
+
+    def test_a_note_goes_in(self):
+        outcome = run(["report", "--note", "the download queue reached eleven"] + self.event)
+        self.assertIn("download queue reached eleven", "\n".join(outcome.lines))
+
+    def test_no_report_before_anybody_has_run(self):
+        empty = self.directory / "other.json"
+        run(["new", "Empty", "2026-05-10", "--event", str(empty)])
+        self.assertEqual(run(["report", "--event", str(empty)]).status, 1)
