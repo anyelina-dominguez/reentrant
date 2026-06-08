@@ -271,3 +271,28 @@ class OverASocket(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class Statistics(unittest.TestCase):
+    def card(self, punches, card=205431, start="10:00:00", finish="10:35:00"):
+        return {"card": card, "start": start, "finish": finish,
+                "punches": [{"code": code, "at": at} for code, at in punches]}
+
+    def test_the_course_statistics(self):
+        client = app()
+        client.post("/download", self.card([("101", "10:04:11"), ("102", "10:12:44")]))
+        status, body = client.get("/statistics")
+        self.assertEqual(status, 200)
+        blue = next(row for row in body["courses"] if row["course"] == "Blue")
+        self.assertEqual(blue["finishers"], 1)
+        self.assertEqual(blue["target"], "35:00")
+        self.assertEqual(blue["verdict"], "about right")
+
+    def test_the_report(self):
+        client = app()
+        client.post("/download", self.card([("101", "10:04:11"), ("102", "10:12:44")]))
+        status, body = client.get("/report")
+        self.assertEqual(status, 200)
+        self.assertEqual(body["event"], "Club fixture")
+        self.assertEqual(body["finishers"], 1)
+        self.assertEqual(body["outcomes"]["ok"], 1)

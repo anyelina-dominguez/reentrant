@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from ...courses.statistics import event_statistics
 from ...event.download import outstanding, process, results_from
+from ...event.report import build_report
 from ...results.analysis import analyse_legs, leg_table, losses_for, superman_seconds
 from ...results.classify import by_class, by_course, classify, counts
 from ...timing.punch import CardRead, Punch
@@ -116,6 +118,17 @@ def result_routes() -> Router:
             } for reference in sorted(by_entry, key=lambda key: names[key])],
         }
 
+    def get_statistics(*, context, **_: Any):
+        rows = context.results or results_from(context.event, context.processed)
+        return {"courses": [row.to_dict()
+                            for row in event_statistics(rows, context.event.class_courses)]}
+
+    def get_report(*, context, **_: Any):
+        rows = context.results or results_from(context.event, context.processed)
+        return build_report(context.event, rows).to_dict()
+
+    router.get("/statistics", get_statistics)
+    router.get("/report", get_report)
     router.post("/download", post_download)
     router.get("/downloads", list_downloads)
     router.get("/outstanding", get_outstanding)
