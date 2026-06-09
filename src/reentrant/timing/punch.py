@@ -25,6 +25,12 @@ from dataclasses import dataclass
 
 from ..errors import ValidationError
 from ..util.ids import FINISH_CODE, START_CODE, require_control_code
+
+#: The two boxes a runner passes before the start. Neither is a control, and
+#: neither counts towards anything -- but a card that was never cleared holds
+#: last week's punches, and the check box is where that gets caught.
+CLEAR_CODE = "C1"
+CHECK_CODE = "K1"
 from ..util.order import sorted_by
 from ..util.times import difference, format_time_of_day
 from ..util.validate import optional, require_int, require_list, require_mapping
@@ -49,6 +55,11 @@ class Punch:
     @property
     def is_finish(self) -> bool:
         return self.code == FINISH_CODE
+
+    @property
+    def is_admin(self) -> bool:
+        """Clear and check: on the card, never on a course."""
+        return self.code in (CLEAR_CODE, CHECK_CODE)
 
     def to_dict(self) -> dict[str, object]:
         return {"code": self.code, "at": format_time_of_day(self.at_seconds)}
@@ -88,7 +99,17 @@ class CardRead:
     @property
     def control_punches(self) -> list[Punch]:
         """Punches at actual controls, in the order the card recorded them."""
-        return [punch for punch in self.punches if not (punch.is_start or punch.is_finish)]
+        return [punch for punch in self.punches
+                if not (punch.is_start or punch.is_finish or punch.is_admin)]
+
+    @property
+    def cleared(self) -> bool:
+        """Whether the card was cleared before the run."""
+        return any(punch.code == CLEAR_CODE for punch in self.punches)
+
+    @property
+    def checked(self) -> bool:
+        return any(punch.code == CHECK_CODE for punch in self.punches)
 
     def since_start(self, start_seconds: int | None = None) -> list[Punch]:
         """Control punches from this run, dropping anything left over from before.

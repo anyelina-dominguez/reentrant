@@ -26,6 +26,9 @@ LOWEST_CONTROL_CODE = 31
 START_CODE = "S1"
 FINISH_CODE = "F1"
 
+#: The clear and check boxes, which are on the card but never on a course.
+ADMIN_CODES = ("C1", "K1")
+
 
 class Sequence:
     """A counter that can be wound forward past references read from a file."""
@@ -63,7 +66,7 @@ def require_reference(value: object, field: str) -> str:
 def require_control_code(value: object, field: str = "code") -> str:
     """A control code: two or three digits, thirty-one or above."""
     text = str(value).strip() if value is not None else ""
-    if text in (START_CODE, FINISH_CODE):
+    if text in (START_CODE, FINISH_CODE) or text in ADMIN_CODES:
         return text
     if not CONTROL_CODE.fullmatch(text):
         raise ValidationError(f"{field} must be a two or three digit control code",

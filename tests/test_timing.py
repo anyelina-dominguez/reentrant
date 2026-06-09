@@ -222,3 +222,29 @@ class Splits(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class AdminBoxes(unittest.TestCase):
+    """Clear and check: on the card, never on a course."""
+
+    def test_they_are_not_control_punches(self):
+        card = read([("C1", "09:55:00"), ("K1", "09:56:00"),
+                     ("101", "10:04:11"), ("102", "10:12:44")])
+        self.assertEqual(card.codes(), ["101", "102"])
+        self.assertEqual(len(card.punches), 4)
+
+    def test_the_card_says_whether_it_was_cleared_and_checked(self):
+        card = read([("C1", "09:55:00"), ("K1", "09:56:00"), ("101", "10:04:11")])
+        self.assertTrue(card.cleared)
+        self.assertTrue(card.checked)
+        self.assertFalse(read([("101", "10:04:11")]).cleared)
+
+    def test_a_run_is_unaffected_by_them(self):
+        card = read([("C1", "09:55:00"), ("101", "10:04:11"),
+                     ("102", "10:12:44"), ("103", "10:15:01")])
+        self.assertEqual(check_run(BLUE, card).outcome, "ok")
+
+    def test_the_codes_are_accepted_where_a_control_code_is_wanted(self):
+        self.assertEqual(Punch("C1", 100).code, "C1")
+        self.assertTrue(Punch("K1", 100).is_admin)
+        self.assertFalse(Punch("101", 100).is_admin)
