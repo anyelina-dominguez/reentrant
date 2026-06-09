@@ -71,6 +71,7 @@ rule, with the reasoning in the commit message.
 
 ## The documents worth reading first
 
+- `docs/a-day.md` -- an event from the entry list to the write-up
 - `docs/conventions.md` -- the arguments not worth having twice
 - `docs/api.md` -- the http surface
 - `CONTRIBUTING.md` -- what a change is expected to look like
