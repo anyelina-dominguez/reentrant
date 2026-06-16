@@ -12,11 +12,12 @@ jobs:
     strategy:
       matrix:
         python: ['3.12', '3.13']
+      fail-fast: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - run: python -m unittest discover -s tests -t . -q
+      - run: python -m unittest discover -s tests -t . -v
       - run: python examples/plan_check.py
       - run: python examples/run_the_day.py
