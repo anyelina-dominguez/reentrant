@@ -191,6 +191,11 @@ class EntryList:
     def __init__(self) -> None:
         self._entries: dict[str, Entry] = {}
         self._by_card: dict[int, str] = {}
+        # Course and class are the two things the results run filters on, over
+        # and over. A four hundred entry event scans the list a few thousand
+        # times on a Sunday afternoon, so both are indexed.
+        self._by_course: dict[str, set[str]] = {}
+        self._by_class: dict[str, set[str]] = {}
         self._sequence = Sequence(1)
 
     def __len__(self) -> int:
@@ -213,17 +218,29 @@ class EntryList:
         self._entries[entry.reference] = entry
         if entry.card is not None:
             self._by_card[entry.card] = entry.reference
+        self._index(entry)
         self._sequence.observe(_number_of(entry.reference))
         return entry
+
+    def _index(self, entry: Entry) -> None:
+        self._by_course.setdefault(entry.course, set()).add(entry.reference)
+        self._by_class.setdefault(entry.class_code, set()).add(entry.reference)
+
+    def _unindex(self, entry: Entry) -> None:
+        self._by_course.get(entry.course, set()).discard(entry.reference)
+        self._by_class.get(entry.class_code, set()).discard(entry.reference)
 
     def put(self, entry: Entry) -> Entry:
         """Add or replace, for loading a file."""
         held = self._entries.get(entry.reference)
-        if held is not None and held.card is not None:
-            self._by_card.pop(held.card, None)
+        if held is not None:
+            if held.card is not None:
+                self._by_card.pop(held.card, None)
+            self._unindex(held)
         self._entries[entry.reference] = entry
         if entry.card is not None:
             self._by_card[entry.card] = entry.reference
+        self._index(entry)
         self._sequence.observe(_number_of(entry.reference))
         return entry
 
@@ -255,16 +272,19 @@ class EntryList:
         del self._entries[entry.reference]
         if entry.card is not None:
             self._by_card.pop(entry.card, None)
+        self._unindex(entry)
         return entry
 
     def all(self) -> list[Entry]:
         return sorted_by(self._entries.values(), "reference")
 
     def on_course(self, course: str) -> list[Entry]:
-        return [entry for entry in self.all() if entry.course == str(course)]
+        return [self._entries[reference]
+                for reference in sorted(self._by_course.get(str(course), ()))]
 
     def in_class(self, class_code: str) -> list[Entry]:
-        return [entry for entry in self.all() if entry.class_code == str(class_code).upper()]
+        return [self._entries[reference]
+                for reference in sorted(self._by_class.get(str(class_code).upper(), ()))]
 
     def by_club(self) -> dict[str, list[Entry]]:
         return group_by(sorted_by(self._entries.values(),

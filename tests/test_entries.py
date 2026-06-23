@@ -146,3 +146,40 @@ class Lists(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class Indexes(unittest.TestCase):
+    """Course and class are indexed; the index has to follow every change."""
+
+    def setUp(self):
+        self.entries = EntryList()
+        self.entries.add(entry("ENT-0001", 205431, "W45", "Blue"))
+        self.entries.add(entry("ENT-0002", 205999, "M21", "Green",
+                               competitor=Competitor("Bo", "Sam", "SYO", 1990, "M")))
+
+    def test_the_slices_agree_with_a_scan(self):
+        self.assertEqual([e.reference for e in self.entries.on_course("Blue")], ["ENT-0001"])
+        self.assertEqual([e.reference for e in self.entries.in_class("m21")], ["ENT-0002"])
+        self.assertEqual(self.entries.on_course("Red"), [])
+
+    def test_moving_an_entry_to_another_course_moves_the_index(self):
+        moved = Entry.from_dict({**self.entries.require("ENT-0001").to_dict(), "course": "Green"})
+        self.entries.update(moved)
+        self.assertEqual(self.entries.on_course("Blue"), [])
+        self.assertEqual([e.reference for e in self.entries.on_course("Green")],
+                         ["ENT-0001", "ENT-0002"])
+
+    def test_changing_a_class_moves_the_index(self):
+        moved = Entry.from_dict({**self.entries.require("ENT-0001").to_dict(), "class_code": "W50"})
+        self.entries.update(moved)
+        self.assertEqual(self.entries.in_class("W45"), [])
+        self.assertEqual([e.reference for e in self.entries.in_class("W50")], ["ENT-0001"])
+
+    def test_removing_takes_it_out_of_both(self):
+        self.entries.remove("ENT-0001")
+        self.assertEqual(self.entries.on_course("Blue"), [])
+        self.assertEqual(self.entries.in_class("W45"), [])
+
+    def test_a_list_read_from_a_file_is_indexed_too(self):
+        back = EntryList.from_list(self.entries.to_list())
+        self.assertEqual([e.reference for e in back.on_course("Blue")], ["ENT-0001"])
