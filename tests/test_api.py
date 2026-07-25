@@ -296,3 +296,29 @@ class Statistics(unittest.TestCase):
         self.assertEqual(body["event"], "Club fixture")
         self.assertEqual(body["finishers"], 1)
         self.assertEqual(body["outcomes"]["ok"], 1)
+
+
+class Routes(unittest.TestCase):
+    def test_a_route_is_drawn_and_read_back(self):
+        client = app()
+        status, body = client.post("/entries/ENT-0001/routes", {"fixes": [
+            {"position": "SK 12000 67000", "at": "10:00:00"},
+            {"position": "SK 12300 67000", "at": "10:02:00"},
+            {"position": "SK 12300 67400", "at": "10:05:00"},
+        ]})
+        self.assertEqual(status, 201)
+        self.assertEqual(body["metres"], 700)
+        self.assertEqual(body["straight"], 500)
+
+        listed = client.get("/entries/ENT-0001/routes")[1]
+        self.assertEqual(len(listed["routes"]), 1)
+        self.assertEqual(listed["compared"][0]["entry"], "ENT-0001")
+
+    def test_a_route_needs_two_fixes_and_a_real_entry(self):
+        client = app()
+        self.assertEqual(client.post("/entries/ENT-0001/routes", {"fixes": [
+            {"position": "SK 12000 67000", "at": "10:00:00"}]})[0], 400)
+        self.assertEqual(client.post("/entries/ENT-9999/routes", {"fixes": []})[0], 404)
+
+    def test_nobody_has_drawn_one_yet(self):
+        self.assertEqual(app().get("/entries/ENT-0001/routes")[1]["routes"], [])

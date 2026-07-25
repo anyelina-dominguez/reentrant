@@ -9,6 +9,8 @@ from ...event.download import outstanding, process, results_from
 from ...event.report import build_report
 from ...results.analysis import analyse_legs, leg_table, losses_for, superman_seconds
 from ...results.classify import by_class, by_course, classify, counts
+from ...geo.grid import parse as parse_grid
+from ...geo.route import Fix, Route, compare
 from ...timing.punch import CardRead, Punch
 from ...timing.validate import splits
 from ...util.times import format_clock, format_time_of_day, parse_time_of_day
@@ -127,6 +129,28 @@ def result_routes() -> Router:
         rows = context.results or results_from(context.event, context.processed)
         return build_report(context.event, rows).to_dict()
 
+    def post_route(*, params, body, context, **_: Any):
+        """A runner's drawn route for one leg."""
+        raw = require_mapping(body, "body")
+        entry = context.event.entries.require(params["reference"])
+        fixes = []
+        for row in require_list(raw.get("fixes", []), "fixes", min_len=2):
+            fix = require_mapping(row, "fix")
+            fixes.append(Fix(parse_grid(str(fix.get("at_position", fix.get("position", "")))),
+                             parse_time_of_day(str(fix.get("at", "")), "at")))
+        route = Route(entry=entry.reference, fixes=fixes)
+        context.routes = getattr(context, "routes", {})
+        context.routes.setdefault(params["reference"], []).append(route)
+        return 201, route.to_dict()
+
+    def get_routes(*, params, context, **_: Any):
+        routes = getattr(context, "routes", {}).get(params["reference"], [])
+        return {"entry": params["reference"],
+                "routes": [route.to_dict() for route in routes],
+                "compared": compare(routes)}
+
+    router.post("/entries/:reference/routes", post_route)
+    router.get("/entries/:reference/routes", get_routes)
     router.get("/statistics", get_statistics)
     router.get("/report", get_report)
     router.post("/download", post_download)
