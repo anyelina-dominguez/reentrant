@@ -125,3 +125,54 @@ class Applying(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class BlockDraws(unittest.TestCase):
+    """The draw runs inside each block, not across the whole field."""
+
+    def plan(self):
+        from reentrant.starts.blocks import Block, StartPlan
+
+        return StartPlan("blocks", [
+            Block("juniors", TEN, TEN + 30 * 60, ["M14"], 120),
+            Block("open", TEN + 30 * 60, TEN + 90 * 60, ["M21"], 60),
+        ])
+
+    def entries(self):
+        return [
+            Entry(f"ENT-{index:04d}", Competitor(f"N{index}", "F", "DPO" if index % 2 else "SYO"),
+                  "", "M14" if index < 3 else "M21", 200_000 + index)
+            for index in range(1, 6)
+        ]
+
+    def test_each_block_draws_inside_its_own_window(self):
+        from reentrant.starts.draw import draw_blocks
+
+        drawn = draw_blocks(self.plan(), self.entries(), seed="ev")
+        self.assertEqual([row.course for row in drawn], ["juniors", "open"])
+        self.assertEqual(drawn[0].first_seconds, TEN)
+        self.assertEqual(drawn[1].first_seconds, TEN + 30 * 60)
+        self.assertEqual(len(drawn[0].slots), 2)
+        self.assertEqual(len(drawn[1].slots), 3)
+
+    def test_each_block_uses_its_own_interval(self):
+        from reentrant.starts.draw import draw_blocks
+
+        drawn = draw_blocks(self.plan(), self.entries(), seed="ev")
+        self.assertEqual(drawn[0].slots[1].seconds - drawn[0].slots[0].seconds, 120)
+        self.assertEqual(drawn[1].slots[1].seconds - drawn[1].slots[0].seconds, 60)
+
+    def test_a_block_nobody_is_in_is_skipped(self):
+        from reentrant.starts.blocks import Block, StartPlan
+        from reentrant.starts.draw import draw_blocks
+
+        plan = StartPlan("blocks", [Block("empty", TEN, TEN + 600, ["W80"])])
+        self.assertEqual(draw_blocks(plan, self.entries(), seed="ev"), [])
+
+    def test_a_plan_that_does_not_use_blocks(self):
+        from reentrant.errors import RuleError
+        from reentrant.starts.blocks import StartPlan
+        from reentrant.starts.draw import draw_blocks
+
+        self.assertRaises(RuleError, draw_blocks, StartPlan("timed"), self.entries())
+        self.assertRaises(RuleError, draw_blocks, None, self.entries())

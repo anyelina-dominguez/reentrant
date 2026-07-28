@@ -30,6 +30,7 @@ import random
 from dataclasses import dataclass
 
 from ..entries.competitor import Entry
+from ..errors import RuleError
 from ..util.order import sorted_by
 from ..util.times import format_time_of_day
 from ..util.validate import require_int, require_str
@@ -213,6 +214,36 @@ def draw_course(course: str, entries: list[Entry], *,
     ]
     return Draw(course=course, slots=slots,
                 unresolved=_conflicts(placed, club_gap, family_gap))
+
+
+def draw_blocks(plan, entries: list[Entry], *,
+                club_gap: int = DEFAULT_CLUB_GAP,
+                family_gap: int = DEFAULT_FAMILY_GAP,
+                seed: str = "") -> list[Draw]:
+    """Draw inside each start block rather than by course.
+
+    The separation draw runs on the runners of one block, and the block decides
+    the window and the interval. Doing it this way round -- block first, then
+    separate -- is what keeps the juniors out of the dark: a draw that treated
+    the whole field as one lane would put them wherever the arithmetic fell.
+    """
+    from .blocks import StartPlan  # imported here to keep the modules apart
+
+    if not isinstance(plan, StartPlan) or plan.kind != "blocks":
+        raise RuleError("that start plan does not use blocks",
+                        kind=getattr(plan, "kind", "unknown"))
+
+    drawn: list[Draw] = []
+    for block in plan.blocks:
+        runners = [entry for entry in entries if block.holds(entry.class_code)]
+        if not runners:
+            continue
+        drawn.append(draw_course(block.name, runners,
+                                 first_seconds=block.first_seconds,
+                                 interval_seconds=block.interval_seconds,
+                                 club_gap=club_gap, family_gap=family_gap,
+                                 seed=f"{seed}|{block.name}"))
+    return drawn
 
 
 def apply_draw(entries: list[Entry], draw: Draw) -> list[Entry]:
