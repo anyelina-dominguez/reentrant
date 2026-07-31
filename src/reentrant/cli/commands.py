@@ -29,6 +29,7 @@ from ..reports.sheets import (
 )
 from ..results.analysis import analyse_legs
 from ..results.classify import classify
+from ..starts.callup import call_up
 from ..starts.draw import apply_draw, draw_course, start_list
 from ..store.jsonstore import EventFile
 from ..timing.punch import CardRead
@@ -315,3 +316,24 @@ def write_up(arguments, held: EventFile, path: Path) -> Outcome:
     notes = [value for value in [arguments.value("note")] if value]
     report = build_report(held.event, held.results, notes=notes)
     return Outcome(0, render_report(report).split("\n"))
+
+
+def callup(arguments, held: EventFile, path: Path) -> Outcome:
+    """``reentrant callup --at 10:03:00`` -- who should be in which box now."""
+    now = parse_time_of_day(arguments.value("at", "10:00:00") or "10:00:00", "at")
+    rows = call_up(held.event.entries.all(), now,
+                   course_of=held.event.entry_course)
+    if not rows:
+        return Outcome(0, [f"nobody is due in the next few minutes at "
+                           f"{format_time_of_day(now)}"])
+    lines = [heading(f"call up at {format_time_of_day(now)}", 66)]
+    lines.append(table([
+        {"key": "stage", "title": "box"},
+        {"key": "away", "title": "min", "align": "right"},
+        {"key": "start", "title": "start"},
+        {"key": "name", "title": "name"},
+        {"key": "course", "title": "course"},
+    ], [{"stage": row.stage, "away": row.minutes_away,
+         "start": format_time_of_day(row.start_seconds),
+         "name": row.name, "course": row.course} for row in rows]))
+    return Outcome(0, lines)

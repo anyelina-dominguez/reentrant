@@ -316,3 +316,36 @@ class WriteUp(unittest.TestCase):
         empty = self.directory / "other.json"
         run(["new", "Empty", "2026-05-10", "--event", str(empty)])
         self.assertEqual(run(["report", "--event", str(empty)]).status, 1)
+
+
+class CallUp(unittest.TestCase):
+    def setUp(self):
+        self.directory = Path(tempfile.mkdtemp())
+        self.path = self.directory / "event.json"
+        self.event = ["--event", str(self.path)]
+        run(["new", "Club fixture", "2026-05-09"] + self.event)
+        held = load(self.path)
+        for code, east in {"S1": 12000, "101": 12300, "F1": 12100}.items():
+            held.event.controls.add(Control(code, grid(f"SK {east} 67000")))
+        held.event.courses.add(Course("Blue", ["S1", "101", "F1"]))
+        held.event.class_courses["M21"] = "Blue"
+        save(self.path, held)
+        source = self.directory / "entries.csv"
+        source.write_text(
+            "surname,first name,class,si card\n"
+            "Okonkwo,Ada,M21,205431\nBergstrom,Nils,M21,205999\n", encoding="utf-8")
+        run(["import", "--file", str(source)] + self.event)
+        run(["draw", "--first", "10:00:00", "--interval", "120"] + self.event)
+
+    def test_who_is_due_now(self):
+        outcome = run(["callup", "--at", "10:00:00"] + self.event)
+        self.assertEqual(outcome.status, 0)
+        text = "\n".join(outcome.lines)
+        self.assertIn("call up at 10:00:00", text)
+        self.assertIn("line", text)
+        self.assertIn("Blue", text)
+
+    def test_nobody_due_says_so(self):
+        outcome = run(["callup", "--at", "09:00:00"] + self.event)
+        self.assertEqual(outcome.status, 0)
+        self.assertIn("nobody is due", outcome.lines[0])
