@@ -12,7 +12,7 @@ them want the same file:
 from __future__ import annotations
 
 from ..entries.competitor import Entry
-from ..results.classify import Result
+from ..results.classify import Result, classify
 from ..util.csv_io import write_rows
 from ..util.times import format_clock
 
@@ -28,7 +28,14 @@ RESULT_COLUMNS = [
 ]
 
 
-def results_csv(results: list[Result]) -> str:
+def results_csv(results: list[Result], *, place: bool = True) -> str:
+    """The results as CSV.
+
+    Classified on the way out by default. Every caller that did not was
+    producing a file with an empty place column, which is not a results file --
+    pass ``place=False`` only when the rows are already placed.
+    """
+    rows = classify(results) if place else results
     return write_rows(RESULT_COLUMNS, [{
         "place": row.place,
         "name": row.name,
@@ -38,7 +45,7 @@ def results_csv(results: list[Result]) -> str:
         "time": row.time_text if row.placed else "",
         "seconds": row.seconds,
         "outcome": row.outcome,
-    } for row in results])
+    } for row in rows])
 
 
 def splits_csv(splits_by_entry: dict[str, list[dict[str, object]]],

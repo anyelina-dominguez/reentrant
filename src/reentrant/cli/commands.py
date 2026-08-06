@@ -224,7 +224,7 @@ def results(arguments, held: EventFile, path: Path) -> Outcome:
     if not rows:
         return Outcome(1, ["nothing has been downloaded yet"])
     if arguments.flag("csv"):
-        return Outcome(0, results_csv(classify(rows)).rstrip("\n").split("\n"))
+        return Outcome(0, results_csv(rows).rstrip("\n").split("\n"))
     if arguments.value("by") == "course":
         return Outcome(0, [course_results_sheet(held.event, rows)])
     return Outcome(0, [results_sheet(held.event, rows)])

@@ -100,8 +100,8 @@ class Sheets(unittest.TestCase):
 
 
 class Exports(unittest.TestCase):
-    def test_the_results_csv_carries_the_places_it_was_given(self):
-        rows = read_rows(results_csv(classify(ROWS)))
+    def test_the_results_csv_places_the_field_itself(self):
+        rows = read_rows(results_csv(ROWS))
         self.assertEqual([row["place"] for row in rows], ["1", "2", ""])
         self.assertEqual(rows[0]["name"], "Bo, Sam")
         self.assertEqual(rows[2]["outcome"], "mispunch")
@@ -109,7 +109,11 @@ class Exports(unittest.TestCase):
 
     def test_a_name_with_a_comma_survives_the_round_trip(self):
         rows = read_rows(results_csv(ROWS))
-        self.assertEqual(rows[0]["name"], "Okonkwo, Ada")
+        self.assertEqual(rows[0]["name"], "Bo, Sam")
+
+    def test_rows_that_are_already_placed_are_left_alone(self):
+        rows = read_rows(results_csv(classify(ROWS), place=False))
+        self.assertEqual([row["place"] for row in rows], ["1", "2", ""])
 
     def test_the_splits_csv_is_one_row_a_leg(self):
         splits = {"E1": [{"number": 1, "code": "101", "leg_seconds": 250, "elapsed_seconds": 250},
