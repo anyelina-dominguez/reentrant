@@ -42,7 +42,7 @@ Or watch the whole thing happen in memory:
     reentrant.reports      the printed sheets, the board, CSV out
     reentrant.store        the event file and its migrations
     reentrant.api          a small router and an http surface over all of it
-    reentrant.cli          fourteen commands over the same objects
+    reentrant.cli          sixteen commands over the same objects
 
 ## The one rule
 

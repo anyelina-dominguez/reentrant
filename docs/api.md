@@ -45,6 +45,9 @@ does not.
 | GET | `/results/classes/:code` | |
 | GET | `/splits/:name` | one course, with the analysis |
 | GET | `/board` | `?shown=5`, the provisional sheet |
+| GET | `/statistics` | how each course came out against its target |
+| GET | `/report` | the organiser's write-up |
+| GET/POST | `/entries/:reference/routes` | the route a runner drew afterwards |
 
 ## The desk
 
