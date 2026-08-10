@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0
+
+The things a second season asked for.
+
+- the decisions live in the event file, so a restart at lunchtime keeps them
+- the call-up, and drawing inside start blocks
+- the clear and check boxes, which are on the card and never on a course
+- course statistics against the target winning time, and the organiser's report
+- route traces, served and compared
+- the entry list indexed by course and class
+
 ## 0.4.0
 
 The day end to end, and the paperwork round it.
