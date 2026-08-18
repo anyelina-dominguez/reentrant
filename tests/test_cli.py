@@ -349,3 +349,39 @@ class CallUp(unittest.TestCase):
         outcome = run(["callup", "--at", "09:00:00"] + self.event)
         self.assertEqual(outcome.status, 0)
         self.assertIn("nobody is due", outcome.lines[0])
+
+
+class Hire(unittest.TestCase):
+    def setUp(self):
+        self.directory = Path(tempfile.mkdtemp())
+        self.path = self.directory / "event.json"
+        self.event = ["--event", str(self.path)]
+        run(["new", "Club fixture", "2026-05-09"] + self.event)
+        held = load(self.path)
+        held.event.courses.add(Course("Blue", ["S1", "F1"]))
+        held.event.class_courses["M21"] = "Blue"
+        save(self.path, held)
+        source = self.directory / "entries.csv"
+        source.write_text("surname,first name,class\nOkonkwo,Ada,M21\n", encoding="utf-8")
+        run(["import", "--file", str(source)] + self.event)
+
+    def test_the_empty_box(self):
+        outcome = run(["hire"] + self.event)
+        self.assertEqual(outcome.status, 0)
+        self.assertIn("0 owned, 0 out", "\n".join(outcome.lines))
+
+    def test_lending_a_card(self):
+        outcome = run(["hire", "--lend", "300111", "--to", "ENT-0001",
+                       "--at", "10:00:00"] + self.event)
+        self.assertEqual(outcome.status, 0)
+        text = "\n".join(outcome.lines)
+        self.assertIn("1 owned, 1 out", text)
+        self.assertIn("Okonkwo, Ada", text)
+
+    def test_lending_to_somebody_who_is_not_entered(self):
+        self.assertEqual(run(["hire", "--lend", "300111", "--to", "ENT-9999"] + self.event).status, 1)
+
+    def test_taking_back_a_card_that_is_not_out(self):
+        outcome = run(["hire", "--back", "300111"] + self.event)
+        self.assertEqual(outcome.status, 1)
+        self.assertIn("not out", outcome.lines[0])

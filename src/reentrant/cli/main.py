@@ -38,6 +38,7 @@ COMMANDS: dict[str, Callable[..., commands.Outcome]] = {
     "serve": commands.serve_http,
     "report": commands.write_up,
     "callup": commands.callup,
+    "hire": commands.hire,
 }
 
 #: Commands that work without an event file already existing.
@@ -60,6 +61,7 @@ USAGE = [
     "  describe [--course c]  the control description sheets",
     "  collect                the list for whoever picks the controls up",
     "  callup [--at 10:03]    who should be in which box now",
+    "  hire [--lend n --to r] the box of hire cards",
     "  report [--note ...]    the organiser's write-up",
     "  serve [--port 8080]    answer http on a port",
     "",

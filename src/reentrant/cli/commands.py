@@ -19,6 +19,7 @@ from ..courses.planning import check_event, summary as planning_summary
 from ..courses.sheets import all_sheets, collection_list, description_sheet
 from ..reports.board import board
 from ..entries.competitor import Competitor, Entry
+from ..entries.hire import HireBox
 from ..errors import ValidationError
 from ..event.download import outstanding, process, results_from
 from ..event.event import Event, summary
@@ -336,4 +337,42 @@ def callup(arguments, held: EventFile, path: Path) -> Outcome:
     ], [{"stage": row.stage, "away": row.minutes_away,
          "start": format_time_of_day(row.start_seconds),
          "name": row.name, "course": row.course} for row in rows]))
+    return Outcome(0, lines)
+
+
+def hire(arguments, held: EventFile, path: Path) -> Outcome:
+    """``reentrant hire [--lend 300111 --to ENT-0042] [--back 300111]``
+
+    Without arguments it prints the box: what is in it, what is out, and who
+    has it. The box itself is not kept in the event file -- it belongs to the
+    club rather than to one fixture -- so this reads and writes the list on the
+    command line and prints the state it leaves behind.
+    """
+    box = HireBox(owned=[int(card) for card in (arguments.value("owned", "") or "").split(",")
+                         if card.strip().isdigit()])
+    at_seconds = parse_time_of_day(arguments.value("at", "10:00:00") or "10:00:00", "at")
+
+    lend = arguments.value("lend")
+    if lend:
+        entry = held.event.entries.require(arguments.require("to"))
+        if int(lend) not in box.owned:
+            box.owned = sorted(set(box.owned) | {int(lend)})
+        box.lend(int(lend), entry.reference, entry.competitor.listed_name, at_seconds)
+
+    back = arguments.value("back")
+    if back:
+        if box.out_on(int(back)) is None:
+            return Outcome(1, [f"card {back} is not out"])
+        box.take_back(int(back), at_seconds)
+
+    told = box.summary()
+    lines = [heading("hire cards", 66),
+             f"{told['owned']} owned, {told['out']} out, {told['available']} in the box"]
+    if box.still_out():
+        lines.append("")
+        lines.append(table([
+            {"key": "card", "title": "card", "align": "right"},
+            {"key": "name", "title": "name"},
+            {"key": "out", "title": "out"},
+        ], [hire.to_dict() for hire in box.still_out()]))
     return Outcome(0, lines)
