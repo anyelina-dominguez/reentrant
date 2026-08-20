@@ -42,7 +42,7 @@ class Sheets(unittest.TestCase):
         text = results_sheet(event(), ROWS)
         self.assertIn("Club fixture -- 2026-05-09", text)
         self.assertIn("Longshaw", text)
-        self.assertIn("W45  (Blue)", text)
+        self.assertIn("W45  (Blue,", text)
         self.assertIn("Bo, Sam", text)
         self.assertIn("mispunch", text)
 
@@ -136,3 +136,22 @@ class Exports(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class SheetHeadings(unittest.TestCase):
+    def test_the_class_heading_carries_the_course_length(self):
+        text = results_sheet(event(), ROWS)
+        self.assertIn("W45  (Blue, 0.5 km)", text)
+
+    def test_a_class_whose_course_we_do_not_have(self):
+        made = event()
+        made.class_courses["W50"] = "Red"
+        rows = ROWS + [Result("E9", "Nobody, At All", "", "W50", "Red", 1900)]
+        self.assertIn("W50  (Red)", results_sheet(made, rows))
+
+    def test_a_course_with_a_control_missing_has_no_length(self):
+        made = event()
+        made.courses.put(Course("Red", ["S1", "199", "F1"]))
+        made.class_courses["W50"] = "Red"
+        rows = ROWS + [Result("E9", "Nobody, At All", "", "W50", "Red", 1900)]
+        self.assertIn("W50  (Red)", results_sheet(made, rows))

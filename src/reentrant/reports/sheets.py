@@ -43,6 +43,18 @@ RESULT_COLUMNS = [
 ]
 
 
+def _length_of(event: Event, course_name: str) -> str:
+    """``, 3.1 km`` for a course we know the length of, otherwise nothing."""
+    course = event.courses.get(course_name)
+    if course is None or course.is_scored:
+        return ""
+    try:
+        metres = course.length_metres(event.controls)
+    except Exception:  # noqa: BLE001 - a course with controls missing has no length
+        return ""
+    return f", {metres / 1000:.1f} km" if metres else ""
+
+
 def results_sheet(event: Event, results: list[Result]) -> str:
     """The results, one block per class."""
     lines = [heading(f"{event.name} -- {event.date}", WIDTH)]
@@ -54,7 +66,8 @@ def results_sheet(event: Event, results: list[Result]) -> str:
     for class_code in sorted(blocks):
         rows = blocks[class_code]
         course = event.class_courses.get(class_code, "")
-        lines.append(heading(f"{class_code}  ({course})" if course else class_code, 40))
+        lines.append(heading(f"{class_code}  ({course}{_length_of(event, course)})"
+                             if course else class_code, 40))
         lines.append(table(RESULT_COLUMNS, _result_rows(rows)))
         lines.append("")
 
