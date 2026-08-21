@@ -23,7 +23,7 @@ ALIASES = {
     "surname": ["surname", "last name", "family name", "lastname"],
     "forename": ["forename", "first name", "given name", "firstname"],
     "club": ["club", "team", "organisation"],
-    "class": ["class", "age class", "category", "short class"],
+    "class": ["class", "age class", "category", "short class", "age category"],
     "course": ["course"],
     "card": ["card", "si", "si card", "sicard", "chip", "e card"],
     "birth_year": ["birth year", "yob", "year of birth", "birthyear"],
