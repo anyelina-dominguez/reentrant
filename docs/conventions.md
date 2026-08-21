@@ -57,6 +57,18 @@ Ties in a results list **share a place and skip the next**. There is no
 tie-break; orienteering does not have one and inventing one here would be
 inventing a result.
 
+## One card, one run
+
+A card can only be entered once. If two people enter on the same card the
+download cannot tell their runs apart, because the card is the only thing the
+timing kit knows about. Clubs lend cards out and people forget to say, so this
+is checked when the entry is taken and again when the card is read.
+
+A card stays on loan until it is **returned**, whether it was used or not. The
+failure this rule exists for: the desk lends 300111 at nine, the runner retires
+without downloading, and at eleven the desk lends it again because the box
+looks empty.
+
 ## Decisions are recorded, never typed over the data
 
 A reinstated mispunch, a disqualification, a voided control, a jury's finding:
