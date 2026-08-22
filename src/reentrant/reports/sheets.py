@@ -45,6 +45,8 @@ RESULT_COLUMNS = [
 
 def _length_of(event: Event, course_name: str) -> str:
     """``, 3.1 km`` for a course we know the length of, otherwise nothing."""
+    if not course_name:
+        return ""
     course = event.courses.get(course_name)
     if course is None or course.is_scored:
         return ""

@@ -155,3 +155,9 @@ class SheetHeadings(unittest.TestCase):
         made.class_courses["W50"] = "Red"
         rows = ROWS + [Result("E9", "Nobody, At All", "", "W50", "Red", 1900)]
         self.assertIn("W50  (Red)", results_sheet(made, rows))
+
+    def test_a_class_with_no_course_at_all(self):
+        rows = [Result("E9", "Nobody, At All", "", "W60", "", 1900)]
+        text = results_sheet(event(), rows)
+        self.assertIn("W60", text)
+        self.assertNotIn("W60  (", text)
