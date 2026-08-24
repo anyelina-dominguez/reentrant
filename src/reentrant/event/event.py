@@ -172,7 +172,14 @@ def summary(event: Event) -> dict[str, object]:
     """The line at the top of every printout."""
     by_course: dict[str, int] = {}
     for entry in event.entries.all():
-        by_course[entry.course] = by_course.get(entry.course, 0) + 1
+        # The course an entry *runs*, not the one it names: an entry to a class
+        # has no course of its own, and counting those as blank made the
+        # summary say every course was empty.
+        try:
+            course = event.entry_course(entry)
+        except NotFoundError:
+            course = entry.course
+        by_course[course] = by_course.get(course, 0) + 1
     return {
         "name": event.name,
         "date": event.date,

@@ -178,3 +178,26 @@ class Downloads(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class Summary(unittest.TestCase):
+    def test_entries_that_name_only_a_class_are_counted_on_their_course(self):
+        listed = EntryList()
+        listed.add(Entry("ENT-0001", Competitor("Okonkwo", "Ada", "DPO", 1981, "W"),
+                         "", "W45", 205431))
+        listed.add(Entry("ENT-0002", Competitor("Bo", "Sam", "SYO", 1990, "M"),
+                         "", "M21", 205999))
+        event = build()
+        event.entries = listed
+        told = summary(event)
+        self.assertEqual(told["by_course"],
+                         [{"course": "Blue", "entries": 1}, {"course": "Green", "entries": 1}])
+
+    def test_an_entry_whose_class_runs_nothing_falls_back_to_its_own_course(self):
+        listed = EntryList()
+        listed.add(Entry("ENT-0001", Competitor("Okonkwo", "Ada", "DPO", 1981, "W"),
+                         "Blue", "W80", 205431))
+        event = build()
+        event.entries = listed
+        self.assertEqual(summary(event)["by_course"],
+                         [{"course": "Blue", "entries": 1}, {"course": "Green", "entries": 0}])
