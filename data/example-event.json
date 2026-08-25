@@ -1,0 +1,264 @@
+{
+  "version": 3,
+  "event": {
+    "name": "Longshaw club fixture",
+    "date": "2026-05-09",
+    "venue": "Longshaw",
+    "organiser": "Dark Peak",
+    "zero_seconds": null,
+    "class_courses": {
+      "M14": "Yellow",
+      "M21": "Green",
+      "M45": "Blue",
+      "W14": "Yellow",
+      "W21": "Green",
+      "W45": "Blue"
+    },
+    "controls": [
+      {
+        "code": "101",
+        "position": "SK 12300 67400",
+        "description": {
+          "feature": "knoll",
+          "which": null,
+          "appearance": null,
+          "dimensions": null,
+          "location": null,
+          "other": null
+        },
+        "height": 215.0,
+        "note": ""
+      },
+      {
+        "code": "102",
+        "position": "SK 12900 67800",
+        "description": {
+          "feature": "re-entrant",
+          "which": "northern",
+          "appearance": null,
+          "dimensions": null,
+          "location": "foot",
+          "other": null
+        },
+        "height": 250.0,
+        "note": ""
+      },
+      {
+        "code": "103",
+        "position": "SK 13400 67200",
+        "description": {
+          "feature": "path",
+          "which": null,
+          "appearance": null,
+          "dimensions": null,
+          "location": "junction",
+          "other": null
+        },
+        "height": 230.0,
+        "note": ""
+      },
+      {
+        "code": "104",
+        "position": "SK 12600 68100",
+        "description": {
+          "feature": "boulder",
+          "which": null,
+          "appearance": null,
+          "dimensions": null,
+          "location": null,
+          "other": null
+        },
+        "height": 240.0,
+        "note": ""
+      },
+      {
+        "code": "F1",
+        "position": "SK 12100 67050",
+        "description": null,
+        "height": 202.0,
+        "note": ""
+      },
+      {
+        "code": "S1",
+        "position": "SK 12000 67000",
+        "description": null,
+        "height": 200.0,
+        "note": ""
+      }
+    ],
+    "courses": [
+      {
+        "name": "Blue",
+        "codes": [
+          "S1",
+          "101",
+          "102",
+          "104",
+          "F1"
+        ],
+        "kind": "point-to-point",
+        "time_limit_seconds": null,
+        "points_per_control": null,
+        "penalty_per_minute": null
+      },
+      {
+        "name": "Green",
+        "codes": [
+          "S1",
+          "101",
+          "103",
+          "F1"
+        ],
+        "kind": "point-to-point",
+        "time_limit_seconds": null,
+        "points_per_control": null,
+        "penalty_per_minute": null
+      },
+      {
+        "name": "Yellow",
+        "codes": [
+          "S1",
+          "103",
+          "F1"
+        ],
+        "kind": "point-to-point",
+        "time_limit_seconds": null,
+        "points_per_control": null,
+        "penalty_per_minute": null
+      }
+    ],
+    "entries": [
+      {
+        "reference": "ENT-0001",
+        "competitor": {
+          "surname": "Okonkwo",
+          "forename": "Ada",
+          "club": "DPO",
+          "birth_year": 1981,
+          "sex": "W",
+          "membership": ""
+        },
+        "course": "",
+        "class_code": "W45",
+        "card": 205431,
+        "hired": false,
+        "start_seconds": 36120,
+        "state": "entered",
+        "note": ""
+      },
+      {
+        "reference": "ENT-0002",
+        "competitor": {
+          "surname": "Bergstrom",
+          "forename": "Nils",
+          "club": "SYO",
+          "birth_year": 1990,
+          "sex": "M",
+          "membership": ""
+        },
+        "course": "",
+        "class_code": "M21",
+        "card": 205999,
+        "hired": false,
+        "start_seconds": 36240,
+        "state": "entered",
+        "note": ""
+      },
+      {
+        "reference": "ENT-0003",
+        "competitor": {
+          "surname": "Cai",
+          "forename": "Jo",
+          "club": "HALO",
+          "birth_year": 2000,
+          "sex": "M",
+          "membership": ""
+        },
+        "course": "",
+        "class_code": "M21",
+        "card": 300111,
+        "hired": false,
+        "start_seconds": 36120,
+        "state": "entered",
+        "note": ""
+      },
+      {
+        "reference": "ENT-0004",
+        "competitor": {
+          "surname": "Dunn",
+          "forename": "Kim",
+          "club": "DPO",
+          "birth_year": 1980,
+          "sex": "M",
+          "membership": ""
+        },
+        "course": "",
+        "class_code": "M45",
+        "card": 300222,
+        "hired": false,
+        "start_seconds": 36000,
+        "state": "entered",
+        "note": ""
+      },
+      {
+        "reference": "ENT-0005",
+        "competitor": {
+          "surname": "Eze",
+          "forename": "Lin",
+          "club": "SYO",
+          "birth_year": 1998,
+          "sex": "W",
+          "membership": ""
+        },
+        "course": "",
+        "class_code": "W21",
+        "card": 300333,
+        "hired": false,
+        "start_seconds": 36000,
+        "state": "entered",
+        "note": ""
+      },
+      {
+        "reference": "ENT-0006",
+        "competitor": {
+          "surname": "Fairhurst",
+          "forename": "Sam",
+          "club": "DPO",
+          "birth_year": 2012,
+          "sex": "M",
+          "membership": ""
+        },
+        "course": "",
+        "class_code": "M14",
+        "card": 300444,
+        "hired": false,
+        "start_seconds": 36000,
+        "state": "entered",
+        "note": ""
+      },
+      {
+        "reference": "ENT-0007",
+        "competitor": {
+          "surname": "Garrick",
+          "forename": "Bo",
+          "club": "HALO",
+          "birth_year": 2013,
+          "sex": "W",
+          "membership": ""
+        },
+        "course": "",
+        "class_code": "W14",
+        "card": 300555,
+        "hired": false,
+        "start_seconds": 36120,
+        "state": "entered",
+        "note": ""
+      }
+    ]
+  },
+  "downloads": [],
+  "results": [],
+  "corrections": [],
+  "complaints": [],
+  "draws": []
+}

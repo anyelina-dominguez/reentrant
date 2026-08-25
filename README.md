@@ -15,12 +15,23 @@ thing above all: **whether a run counts**. Everything else can be fixed in the
 morning; a wrongly voided run means somebody drove two hours for nothing.
 
     python3 -m reentrant.cli.main --help
+
+There is a worked event in the repository to try them on:
+
+    python3 -m reentrant.cli.main show     --event data/example-event.json
+    python3 -m reentrant.cli.main check    --event data/example-event.json
+    python3 -m reentrant.cli.main starts   --event data/example-event.json
+    python3 -m reentrant.cli.main describe --event data/example-event.json
+    python3 -m reentrant.cli.main serve --port 8080 --event data/example-event.json
+
+Seven runners, three courses, six classes and a drawn start list. Or start one
+of your own:
+
     python3 -m reentrant.cli.main new "Longshaw club fixture" 2026-05-09
     python3 -m reentrant.cli.main import --file entries.csv
     python3 -m reentrant.cli.main draw --first 10:00:00
     python3 -m reentrant.cli.main download --file cards.json
     python3 -m reentrant.cli.main results
-    python3 -m reentrant.cli.main serve --port 8080
 
 Or watch the whole thing happen in memory:
 

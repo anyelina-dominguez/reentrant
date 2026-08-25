@@ -6,7 +6,7 @@ dist/
 *.egg-info/
 .coverage
 data/*.json
-!data/example.json
+!data/example-event.json
 
 # local commit-pacing helpers
 .dates.txt
