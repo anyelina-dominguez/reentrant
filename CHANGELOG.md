@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- a worked event in `data/`, and the commands run against it in CI
+- entries are counted on the course they run rather than the one they named
+
 ## 0.5.0
 
 The things a second season asked for.
