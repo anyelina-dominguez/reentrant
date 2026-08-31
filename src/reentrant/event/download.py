@@ -158,8 +158,16 @@ def results_from(event: Event, downloads: list[Download]) -> list[Result]:
     return rows
 
 
-def outstanding(event: Event, downloads: list[Download]) -> list[Entry]:
-    """Who has started and not come back."""
+def outstanding(event: Event, downloads: list[Download], *,
+                course: str | None = None) -> list[Entry]:
+    """Who has started and not come back.
+
+    With a course, only that course -- which is the form the question is
+    actually asked in at the desk, usually by somebody's family.
+    """
     seen = {download.entry.reference for download in downloads if download.entry is not None}
-    return [entry for entry in event.entries.all()
+    rows = [entry for entry in event.entries.all()
             if entry.reference not in seen and entry.start_seconds is not None]
+    if course is None:
+        return rows
+    return [entry for entry in rows if event.entry_course(entry) == str(course)]

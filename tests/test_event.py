@@ -201,3 +201,15 @@ class Summary(unittest.TestCase):
         event.entries = listed
         self.assertEqual(summary(event)["by_course"],
                          [{"course": "Blue", "entries": 1}, {"course": "Green", "entries": 0}])
+
+
+class Outstanding(unittest.TestCase):
+    def test_who_is_still_out_on_one_course(self):
+        event = build(entries=[
+            entry("ENT-0001", 205431, "W45", "Blue"),
+            entry("ENT-0002", 205999, "M21", "Green", "10:02:00", "Bo", "Sam", 1990, "M"),
+        ])
+        self.assertEqual([e.reference for e in outstanding(event, [])], ["ENT-0001", "ENT-0002"])
+        self.assertEqual([e.reference for e in outstanding(event, [], course="Blue")],
+                         ["ENT-0001"])
+        self.assertEqual(outstanding(event, [], course="Yellow"), [])

@@ -322,3 +322,11 @@ class Routes(unittest.TestCase):
 
     def test_nobody_has_drawn_one_yet(self):
         self.assertEqual(app().get("/entries/ENT-0001/routes")[1]["routes"], [])
+
+
+class OutstandingByCourse(unittest.TestCase):
+    def test_the_question_the_desk_is_actually_asked(self):
+        client = app()
+        self.assertEqual(client.get("/outstanding")[1]["count"], 2)
+        self.assertEqual(client.get("/outstanding?course=Blue")[1]["count"], 1)
+        self.assertEqual(client.get("/outstanding?course=Yellow")[1]["count"], 0)

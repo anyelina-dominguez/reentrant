@@ -67,8 +67,8 @@ def result_routes() -> Router:
                           for download in context.processed],
         }
 
-    def get_outstanding(*, context, **_: Any):
-        rows = outstanding(context.event, context.processed)
+    def get_outstanding(*, query, context, **_: Any):
+        rows = outstanding(context.event, context.processed, course=query.get("course"))
         return {"count": len(rows),
                 "entries": [{"entry": entry.reference,
                              "name": entry.competitor.listed_name,
