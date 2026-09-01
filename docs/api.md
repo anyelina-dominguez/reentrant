@@ -40,7 +40,7 @@ does not.
 |---|---|---|
 | POST | `/download` | a card read in, a slip out |
 | GET | `/downloads` | the log |
-| GET | `/outstanding` | who has started and not come back |
+| GET | `/outstanding` | `?course=`, who has started and not come back |
 | GET | `/results` | `?by=course` |
 | GET | `/results/classes/:code` | |
 | GET | `/splits/:name` | one course, with the analysis |
