@@ -4,6 +4,8 @@
 
 - a worked event in `data/`, and the commands run against it in CI
 - entries are counted on the course they run rather than the one they named
+- `/outstanding?course=` and `outstanding(..., course=)`, which is how the
+  question is asked at the desk
 
 ## 0.5.0
 
