@@ -5,7 +5,12 @@ who won.
 
 Python 3.12. No dependencies.
 
-    make test
+    make test        # the suite
+    make all         # the suite, the worked event, and both examples
+
+Without make:
+
+    python3 -m unittest discover -s tests -t . -q
 
 ## What it is for
 
