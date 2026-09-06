@@ -44,5 +44,5 @@ class TestApp:
         return self.request("DELETE", path, body)
 
 
-def test_app(context: Context, router: Router | None = None) -> TestApp:
+def make_app(context: Context, router: Router | None = None) -> TestApp:
     return TestApp(context, router)

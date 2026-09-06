@@ -5,7 +5,7 @@ import unittest
 from . import context as _context  # noqa: F401
 
 from reentrant.api.context import Clock, Context
-from reentrant.api.testapp import test_app
+from reentrant.api.testapp import make_app
 from reentrant.courses.control import Control, ControlSet
 from reentrant.courses.course import Course, CourseSet
 from reentrant.entries.competitor import Competitor, Entry, EntryList
@@ -28,7 +28,7 @@ def build() -> Event:
 
 
 def app():
-    return test_app(Context(event=build(), clock=Clock.stopped_at(45000)))
+    return make_app(Context(event=build(), clock=Clock.stopped_at(45000)))
 
 
 class Hire(unittest.TestCase):
@@ -227,7 +227,7 @@ class Persistence(unittest.TestCase):
         path = Path(tempfile.mkdtemp()) / "event.json"
         save(path, EventFile(event=build()))
         context = Context.from_file(load(path), path)
-        client = test_app(context)
+        client = make_app(context)
 
         client.post("/corrections", {"entry": "ENT-0001", "decision": "reinstate",
                                      "reason": "control was down", "by": "organiser"})

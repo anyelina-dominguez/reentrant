@@ -74,8 +74,8 @@ does not.
 `src/reentrant/api/testapp.py` drives the same handlers without a socket:
 
 ```python
-from reentrant.api.testapp import test_app
-client = test_app(context)
+from reentrant.api.testapp import make_app
+client = make_app(context)
 status, body = client.get("/entries?course=Blue")
 ```
 

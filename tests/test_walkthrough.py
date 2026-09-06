@@ -7,7 +7,7 @@ from pathlib import Path
 from . import context as _context  # noqa: F401
 
 from reentrant.api.context import Clock, Context
-from reentrant.api.testapp import test_app
+from reentrant.api.testapp import make_app
 from reentrant.courses.control import Control
 from reentrant.courses.course import Course
 from reentrant.geo.grid import parse as grid
@@ -35,7 +35,7 @@ class Walkthrough(unittest.TestCase):
         event.courses.add(Course("Green", ["S1", "101", "103", "F1"]))
         event.class_courses.update({"W45": "Blue", "M21": "Green"})
         save(self.path, EventFile(event=event))
-        self.client = test_app(Context.from_file(load(self.path), self.path))
+        self.client = make_app(Context.from_file(load(self.path), self.path))
 
     def card(self, card, start, finish, punches):
         return {"card": card, "start": start, "finish": finish,
@@ -93,7 +93,7 @@ class Walkthrough(unittest.TestCase):
         self.assertIn("Cai, Jo", client.get("/board")[1]["text"])
 
         # And it survives the laptop being restarted.
-        reopened = test_app(Context.from_file(load(self.path), self.path))
+        reopened = make_app(Context.from_file(load(self.path), self.path))
         self.assertEqual(len(reopened.context.corrections), 1)
 
         # Splits and the write-up.

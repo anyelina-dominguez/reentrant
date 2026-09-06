@@ -12,7 +12,7 @@ from reentrant.api.app import build_router, paths
 from reentrant.api.context import Clock, Context
 from reentrant.api.http import serve
 from reentrant.api.router import Router
-from reentrant.api.testapp import test_app
+from reentrant.api.testapp import make_app
 from reentrant.courses.control import Control, ControlSet
 from reentrant.courses.course import Course, CourseSet
 from reentrant.entries.competitor import Competitor, Entry, EntryList
@@ -40,7 +40,7 @@ def build_event() -> Event:
 
 
 def app():
-    return test_app(Context(event=build_event(), clock=Clock.stopped_at(36000)))
+    return make_app(Context(event=build_event(), clock=Clock.stopped_at(36000)))
 
 
 class Event_(unittest.TestCase):
@@ -155,7 +155,7 @@ class Starts(unittest.TestCase):
         self.assertEqual(listed["count"], 2)
 
     def test_a_draw_with_nobody_to_draw(self):
-        empty = test_app(Context(event=Event("Empty", "2026-05-09")))
+        empty = make_app(Context(event=Event("Empty", "2026-05-09")))
         self.assertEqual(empty.post("/starts/draw", {})[0], 400)
 
 
